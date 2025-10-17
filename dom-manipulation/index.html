@@ -1,23 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Dynamic Quote Generator</title>
+    <style>
+      /* Clean, modern styling similar to previous example */
+      :root {
+        --bg: #f5f7fb;
+        --card: #ffffff;
+        --primary: #2563eb;
+        --muted: #6b7280;
+        --radius: 12px;
+        --pad: 18px;
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial;
+      }
+
+      body {
+        background: var(--bg);
+        margin: 0;
+        padding: 40px 20px;
+        display: flex;
+        justify-content: center;
+        color: #0f172a;
+      }
+
+      .container {
+        width: 900px;
+        max-width: 96%;
+      }
+
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 18px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 1.6rem;
+        letter-spacing: -0.2px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      select,
+      input[type="text"],
+      button {
+        padding: 8px 12px;
+        border-radius: 8px;
+        border: 1px solid #e6edf6;
+        font-size: 0.95rem;
+      }
+
+      button {
+        background: var(--primary);
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--primary);
+        border: 1px solid rgba(37, 99, 235, 0.12);
+      }
+
+      #quoteDisplay {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 26px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
+        margin: 18px 0;
+        min-height: 90px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.05rem;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 360px;
+        gap: 18px;
+        align-items: start;
+      }
+
+      .card {
+        background: var(--card);
+        border-radius: 12px;
+        padding: 14px;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.04);
+      }
+
+      #addQuoteFormContainer input {
+        width: calc(100% - 16px);
+        margin-bottom: 8px;
+        box-sizing: border-box;
+      }
+
+      #quotesList {
+        max-height: 420px;
+        overflow: auto;
+        padding: 8px;
+      }
+
+      #quotesList p {
+        margin: 10px 0;
+        border-bottom: 1px dashed #eef2ff;
+        padding-bottom: 8px;
+      }
+
+      .small {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      footer {
+        margin-top: 14px;
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+
+      /* Responsive */
+      @media (max-width: 880px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .controls {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+      }
+    </style>
   </head>
   <body>
-    <h1>Dynamic Quote Generator</h1>
+    <div class="container">
+      <header>
+        <h1>Dynamic Quote Generator</h1>
+        <div class="controls">
+          <!-- This select id matches your script's expected id "categorySelect" -->
+          <label for="categorySelect" class="small" style="margin-right: 6px"
+            >Filter:</label
+          >
+          <select id="categorySelect" aria-label="Filter quotes by category">
+            <!-- options populated dynamically -->
+          </select>
 
-    <label for="categoryFilter"><strong>Filter by Category:</strong></label>
-    <select id="categoryFilter">
-      <option value="all">All Categories</option>
-    </select>
+          <button id="newQuote" title="Show a random quote">
+            Show New Quote
+          </button>
+        </div>
+      </header>
 
-    <div id="quoteDisplay"></div>
+      <div id="quoteDisplay">Click “Show New Quote” to begin!</div>
 
-    <button id="newQuote">Show Random Quote</button>
+      <div class="grid">
+        <!-- Left: Quotes list -->
+        <div class="card">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 8px;
+            "
+          >
+            <strong>Quotes</strong>
+            <span class="small" id="quotesCount">0</span>
+          </div>
+          <div id="quotesList">
+            <!-- Rendered list of quotes (filtered) -->
+          </div>
+        </div>
 
-    <div id="addQuoteFormContainer"></div>
+        <!-- Right: Add / Import / Export -->
+        <aside class="card">
+          <strong>Add a new quote</strong>
+          <div id="addQuoteFormContainer" style="margin-top: 10px"></div>
+
+          <hr
+            style="margin: 12px 0; border: none; border-top: 1px solid #f1f5f9"
+          />
+
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <button id="exportJson">Export Quotes (JSON)</button>
+
+            <div style="display: flex; gap: 8px; align-items: center">
+              <input id="importFile" type="file" accept=".json" />
+              <button id="importMerge" class="secondary">Import (Merge)</button>
+              <button id="importReplace" class="secondary">
+                Import (Replace)
+              </button>
+            </div>
+
+            <p class="small" style="margin-top: 6px">
+              Tip: imported JSON should be an array of objects with
+              <code>text</code> and <code>category</code>.
+            </p>
+          </div>
+        </aside>
+      </div>
+
+      <footer>
+        <span class="small"
+          >Quotes persist in your browser using <strong>localStorage</strong>.
+          Session remembers the last shown quote.</span
+        >
+      </footer>
+    </div>
 
     <script src="script.js"></script>
   </body>
