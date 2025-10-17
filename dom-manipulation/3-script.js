@@ -1,9 +1,9 @@
 // script.js
-// Dynamic Quote Generator with Category Filtering, Web Storage, Import/Export, and Simulated Server Sync
+// Dynamic Quote Generator with Category Filtering, Web Storage, Import/Export, and Simulated Server Sync (GET + POST)
 
 // ---------- Storage keys ----------
-const LOCAL_KEY = "dynamic_quote_generator_quotes_v3";
-const LOCAL_KEY_FILTER = "dynamic_quote_generator_selected_category_v3";
+const LOCAL_KEY = "dynamic_quote_generator_quotes_v4";
+const LOCAL_KEY_FILTER = "dynamic_quote_generator_selected_category_v4";
 const SESSION_KEY_LAST = "dynamic_quote_generator_last_viewed_quote";
 
 // ---------- Default quotes ----------
@@ -27,7 +27,7 @@ const defaultQuotes = [
 const quoteDisplay = document.getElementById("quoteDisplay");
 const categoryFilter =
   document.getElementById("categoryFilter") ||
-  document.getElementById("categorySelect"); // compatibility with index.html
+  document.getElementById("categorySelect"); // compatibility
 const newQuoteButton = document.getElementById("newQuote");
 const formContainer = document.getElementById("addQuoteFormContainer");
 const quotesListContainer = document.getElementById("quotesList");
@@ -39,7 +39,10 @@ const quotesCount = document.getElementById("quotesCount");
 
 // ---------- In-memory data ----------
 let quotes = [];
-let selectedCategory = "all"; // ✅ Required for filtering logic
+let selectedCategory = "all";
+
+// ---------- Mock Server URL ----------
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
 
 // ---------- Initialization ----------
 document.addEventListener("DOMContentLoaded", () => {
@@ -49,7 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
   createAddQuoteForm();
   renderQuotesList(selectedCategory);
 
-  newQuoteButton.addEventListener("click", showRandomQuote);
+  if (newQuoteButton) newQuoteButton.addEventListener("click", showRandomQuote);
   if (categoryFilter) categoryFilter.addEventListener("change", filterQuotes);
   if (exportBtn) exportBtn.addEventListener("click", exportQuotesToJson);
   if (importMergeBtn)
@@ -61,7 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
       importFromJsonFile({ replace: true })
     );
 
-  // 🔄 Initial fetch from simulated server
+  // 🔄 Initial sync on load
   fetchQuotesFromServer();
 
   // ⏱️ Periodic sync every 60 seconds
@@ -117,8 +120,8 @@ function populateCategories() {
 
 // ---------- Filtering ----------
 function filterQuotes() {
-  selectedCategory = categoryFilter.value; // ✅ explicitly use variable
-  localStorage.setItem(LOCAL_KEY_FILTER, selectedCategory); // ✅ store selected category
+  selectedCategory = categoryFilter.value;
+  localStorage.setItem(LOCAL_KEY_FILTER, selectedCategory);
   renderQuotesList(selectedCategory);
 }
 
@@ -206,7 +209,8 @@ function addQuote(text, category) {
     return;
   }
 
-  quotes.push({ text, category });
+  const newQuote = { text, category };
+  quotes.push(newQuote);
   saveQuotesToLocalStorage();
   populateCategories();
   selectedCategory = category;
@@ -214,6 +218,10 @@ function addQuote(text, category) {
   filterQuotes();
 
   alert("Quote added successfully!");
+
+  // 🔼 Post new quote to mock server
+  postQuoteToServer(newQuote);
+
   document.getElementById("newQuoteText").value = "";
   document.getElementById("newQuoteCategory").value = "";
 }
@@ -265,20 +273,15 @@ function importFromJsonFile({ replace = false } = {}) {
   reader.readAsText(file);
 }
 
-// ---------- Simulated Server Sync ----------
+// ---------- Server Sync Functions ----------
 
-// Mock server URL (simulation)
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
-
-// Fetch quotes from simulated server
+// Fetch quotes from mock server (simulated GET)
 async function fetchQuotesFromServer() {
   try {
     const response = await fetch(SERVER_URL);
     if (!response.ok) throw new Error("Failed to fetch server data");
 
     const data = await response.json();
-
-    // Simulate quote objects from placeholder data
     const serverQuotes = data.slice(0, 10).map((item) => ({
       text: item.title,
       category: "Server Import",
@@ -290,7 +293,22 @@ async function fetchQuotesFromServer() {
   }
 }
 
-// Merge and handle potential conflicts
+// Post new quote to mock server (simulated POST)
+async function postQuoteToServer(quote) {
+  try {
+    const response = await fetch(SERVER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(quote),
+    });
+    const result = await response.json();
+    console.log("✅ Quote posted to server:", result);
+  } catch (err) {
+    console.error("❌ Failed to post quote:", err);
+  }
+}
+
+// Merge server quotes with local data
 function handleServerSync(serverQuotes) {
   const localMap = new Map(quotes.map((q) => q.text));
   let updated = false;
