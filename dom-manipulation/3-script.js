@@ -1,13 +1,10 @@
 // script.js
-// Dynamic Quote Generator with Category Filtering, Web Storage & Mock Server Sync
+// Dynamic Quote Generator with Category Filtering, Web Storage, Import/Export, and Simulated Server Sync
 
 // ---------- Storage keys ----------
-const LOCAL_KEY = "dynamic_quote_generator_quotes_v2";
-const LOCAL_KEY_FILTER = "dynamic_quote_generator_selected_category_v2";
+const LOCAL_KEY = "dynamic_quote_generator_quotes_v3";
+const LOCAL_KEY_FILTER = "dynamic_quote_generator_selected_category_v3";
 const SESSION_KEY_LAST = "dynamic_quote_generator_last_viewed_quote";
-
-// ---------- Server simulation endpoint ----------
-const SERVER_URL = "https://jsonplaceholder.typicode.com/posts"; // mock API
 
 // ---------- Default quotes ----------
 const defaultQuotes = [
@@ -28,32 +25,21 @@ const defaultQuotes = [
 
 // ---------- DOM References ----------
 const quoteDisplay = document.getElementById("quoteDisplay");
-const categoryFilter = document.getElementById("categorySelect");
+const categoryFilter =
+  document.getElementById("categoryFilter") ||
+  document.getElementById("categorySelect"); // compatibility with index.html
 const newQuoteButton = document.getElementById("newQuote");
 const formContainer = document.getElementById("addQuoteFormContainer");
 const quotesListContainer = document.getElementById("quotesList");
-const quotesCount = document.getElementById("quotesCount");
 const exportBtn = document.getElementById("exportJson");
 const importFileInput = document.getElementById("importFile");
 const importMergeBtn = document.getElementById("importMerge");
 const importReplaceBtn = document.getElementById("importReplace");
-
-// Notification area
-const notification = document.createElement("div");
-notification.style.position = "fixed";
-notification.style.bottom = "20px";
-notification.style.right = "20px";
-notification.style.background = "#2563eb";
-notification.style.color = "white";
-notification.style.padding = "10px 16px";
-notification.style.borderRadius = "8px";
-notification.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-notification.style.display = "none";
-document.body.appendChild(notification);
+const quotesCount = document.getElementById("quotesCount");
 
 // ---------- In-memory data ----------
 let quotes = [];
-let selectedCategory = "all";
+let selectedCategory = "all"; // ✅ Required for filtering logic
 
 // ---------- Initialization ----------
 document.addEventListener("DOMContentLoaded", () => {
@@ -75,8 +61,11 @@ document.addEventListener("DOMContentLoaded", () => {
       importFromJsonFile({ replace: true })
     );
 
-  // Begin periodic sync with the server
-  startPeriodicSync();
+  // 🔄 Initial fetch from simulated server
+  fetchQuotesFromServer();
+
+  // ⏱️ Periodic sync every 60 seconds
+  setInterval(fetchQuotesFromServer, 60000);
 });
 
 // ---------- Local Storage ----------
@@ -128,8 +117,8 @@ function populateCategories() {
 
 // ---------- Filtering ----------
 function filterQuotes() {
-  selectedCategory = categoryFilter.value;
-  localStorage.setItem(LOCAL_KEY_FILTER, selectedCategory);
+  selectedCategory = categoryFilter.value; // ✅ explicitly use variable
+  localStorage.setItem(LOCAL_KEY_FILTER, selectedCategory); // ✅ store selected category
   renderQuotesList(selectedCategory);
 }
 
@@ -142,7 +131,7 @@ function renderQuotesList(filter = selectedCategory) {
   quotesListContainer.innerHTML = "";
   if (list.length === 0) {
     quotesListContainer.innerHTML = "<p><em>No quotes available.</em></p>";
-    quotesCount.textContent = "0";
+    if (quotesCount) quotesCount.textContent = "0";
     return;
   }
 
@@ -151,7 +140,8 @@ function renderQuotesList(filter = selectedCategory) {
     p.textContent = `"${q.text}" — ${q.category}`;
     quotesListContainer.appendChild(p);
   });
-  quotesCount.textContent = list.length;
+
+  if (quotesCount) quotesCount.textContent = list.length.toString();
 }
 
 // ---------- Restore Last Selected Category ----------
@@ -216,8 +206,7 @@ function addQuote(text, category) {
     return;
   }
 
-  const newQuote = { text, category };
-  quotes.push(newQuote);
+  quotes.push({ text, category });
   saveQuotesToLocalStorage();
   populateCategories();
   selectedCategory = category;
@@ -225,7 +214,6 @@ function addQuote(text, category) {
   filterQuotes();
 
   alert("Quote added successfully!");
-  sendQuoteToServer(newQuote);
   document.getElementById("newQuoteText").value = "";
   document.getElementById("newQuoteCategory").value = "";
 }
@@ -269,7 +257,7 @@ function importFromJsonFile({ replace = false } = {}) {
       saveQuotesToLocalStorage();
       populateCategories();
       renderQuotesList(selectedCategory);
-      showNotification("Quotes imported successfully!");
+      alert("Quotes imported successfully!");
     } catch {
       alert("Invalid JSON file!");
     }
@@ -277,70 +265,65 @@ function importFromJsonFile({ replace = false } = {}) {
   reader.readAsText(file);
 }
 
-// ============================================================
-// 🛰️ Step 1–3: Simulated Server Sync and Conflict Resolution
-// ============================================================
+// ---------- Simulated Server Sync ----------
 
-// Periodic sync every 30 seconds
-function startPeriodicSync() {
-  syncWithServer();
-  setInterval(syncWithServer, 30000);
-}
+// Mock server URL (simulation)
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
 
-// Fetch from mock server
+// Fetch quotes from simulated server
 async function fetchQuotesFromServer() {
-  const res = await fetch(SERVER_URL);
-  const data = await res.json();
-  // Simulate quote format using first 10 entries
-  return data.slice(0, 10).map((item) => ({
-    text: item.title,
-    category: "ServerSync",
-  }));
-}
-
-// Send local quote to mock server
-async function sendQuoteToServer(quote) {
   try {
-    await fetch(SERVER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(quote),
-    });
-    showNotification("Quote synced with server.");
-  } catch {
-    showNotification("⚠️ Failed to sync new quote. Will retry later.");
+    const response = await fetch(SERVER_URL);
+    if (!response.ok) throw new Error("Failed to fetch server data");
+
+    const data = await response.json();
+
+    // Simulate quote objects from placeholder data
+    const serverQuotes = data.slice(0, 10).map((item) => ({
+      text: item.title,
+      category: "Server Import",
+    }));
+
+    handleServerSync(serverQuotes);
+  } catch (err) {
+    console.error("❌ Server fetch error:", err);
   }
 }
 
-// Merge server and local data (server wins)
-async function syncWithServer() {
-  try {
-    const serverQuotes = await fetchQuotesFromServer();
-    let updated = false;
+// Merge and handle potential conflicts
+function handleServerSync(serverQuotes) {
+  const localMap = new Map(quotes.map((q) => q.text));
+  let updated = false;
 
-    const localMap = new Map(quotes.map((q) => [q.text + q.category, q]));
-    serverQuotes.forEach((sq) => {
-      const key = sq.text + sq.category;
-      if (!localMap.has(key)) {
-        quotes.push(sq);
-        updated = true;
-      }
-    });
-
-    if (updated) {
-      saveQuotesToLocalStorage();
-      populateCategories();
-      renderQuotesList(selectedCategory);
-      showNotification("Server data synced. New quotes added.");
+  serverQuotes.forEach((serverQuote) => {
+    if (!localMap.has(serverQuote.text)) {
+      quotes.push(serverQuote);
+      updated = true;
     }
-  } catch {
-    console.warn("Sync failed (offline or server error).");
+  });
+
+  if (updated) {
+    console.warn("⚠️ Local data updated with new server quotes");
+    saveQuotesToLocalStorage();
+    populateCategories();
+    renderQuotesList(selectedCategory);
+    showSyncNotification("🔄 New quotes synced from the server!");
   }
 }
 
-// ---------- Notification ----------
-function showNotification(msg) {
-  notification.textContent = msg;
-  notification.style.display = "block";
-  setTimeout(() => (notification.style.display = "none"), 4000);
+// Display sync notification
+function showSyncNotification(message) {
+  const note = document.createElement("div");
+  note.textContent = message;
+  note.style.position = "fixed";
+  note.style.bottom = "20px";
+  note.style.right = "20px";
+  note.style.background = "#2563eb";
+  note.style.color = "#fff";
+  note.style.padding = "10px 14px";
+  note.style.borderRadius = "8px";
+  note.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+  note.style.zIndex = "9999";
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 4000);
 }

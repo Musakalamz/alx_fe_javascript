@@ -1,9 +1,9 @@
 // script.js
-// Dynamic Quote Generator with Category Filtering using Web Storage (LocalStorage + JSON import/export)
+// Dynamic Quote Generator with Category Filtering, Web Storage, Import/Export, and Simulated Server Sync
 
 // ---------- Storage keys ----------
-const LOCAL_KEY = "dynamic_quote_generator_quotes_v2";
-const LOCAL_KEY_FILTER = "dynamic_quote_generator_selected_category_v2";
+const LOCAL_KEY = "dynamic_quote_generator_quotes_v3";
+const LOCAL_KEY_FILTER = "dynamic_quote_generator_selected_category_v3";
 const SESSION_KEY_LAST = "dynamic_quote_generator_last_viewed_quote";
 
 // ---------- Default quotes ----------
@@ -25,7 +25,9 @@ const defaultQuotes = [
 
 // ---------- DOM References ----------
 const quoteDisplay = document.getElementById("quoteDisplay");
-const categoryFilter = document.getElementById("categoryFilter");
+const categoryFilter =
+  document.getElementById("categoryFilter") ||
+  document.getElementById("categorySelect"); // compatibility with index.html
 const newQuoteButton = document.getElementById("newQuote");
 const formContainer = document.getElementById("addQuoteFormContainer");
 const quotesListContainer = document.getElementById("quotesList");
@@ -33,10 +35,11 @@ const exportBtn = document.getElementById("exportJson");
 const importFileInput = document.getElementById("importFile");
 const importMergeBtn = document.getElementById("importMerge");
 const importReplaceBtn = document.getElementById("importReplace");
+const quotesCount = document.getElementById("quotesCount");
 
 // ---------- In-memory data ----------
 let quotes = [];
-let selectedCategory = "all"; // ✅ Required by checker
+let selectedCategory = "all"; // ✅ Required for filtering logic
 
 // ---------- Initialization ----------
 document.addEventListener("DOMContentLoaded", () => {
@@ -57,6 +60,12 @@ document.addEventListener("DOMContentLoaded", () => {
     importReplaceBtn.addEventListener("click", () =>
       importFromJsonFile({ replace: true })
     );
+
+  // 🔄 Initial fetch from simulated server
+  fetchQuotesFromServer();
+
+  // ⏱️ Periodic sync every 60 seconds
+  setInterval(fetchQuotesFromServer, 60000);
 });
 
 // ---------- Local Storage ----------
@@ -122,6 +131,7 @@ function renderQuotesList(filter = selectedCategory) {
   quotesListContainer.innerHTML = "";
   if (list.length === 0) {
     quotesListContainer.innerHTML = "<p><em>No quotes available.</em></p>";
+    if (quotesCount) quotesCount.textContent = "0";
     return;
   }
 
@@ -130,13 +140,15 @@ function renderQuotesList(filter = selectedCategory) {
     p.textContent = `"${q.text}" — ${q.category}`;
     quotesListContainer.appendChild(p);
   });
+
+  if (quotesCount) quotesCount.textContent = list.length.toString();
 }
 
 // ---------- Restore Last Selected Category ----------
 function restoreSelectedCategory() {
   const saved = localStorage.getItem(LOCAL_KEY_FILTER);
   if (saved && categoryFilter) {
-    selectedCategory = saved; // ✅ restore variable
+    selectedCategory = saved;
     setTimeout(() => {
       if (
         Array.from(categoryFilter.options).some((opt) => opt.value === saved)
@@ -197,7 +209,7 @@ function addQuote(text, category) {
   quotes.push({ text, category });
   saveQuotesToLocalStorage();
   populateCategories();
-  selectedCategory = category; // ✅ update variable
+  selectedCategory = category;
   categoryFilter.value = category;
   filterQuotes();
 
@@ -251,4 +263,67 @@ function importFromJsonFile({ replace = false } = {}) {
     }
   };
   reader.readAsText(file);
+}
+
+// ---------- Simulated Server Sync ----------
+
+// Mock server URL (simulation)
+const SERVER_URL = "https://jsonplaceholder.typicode.com/posts";
+
+// Fetch quotes from simulated server
+async function fetchQuotesFromServer() {
+  try {
+    const response = await fetch(SERVER_URL);
+    if (!response.ok) throw new Error("Failed to fetch server data");
+
+    const data = await response.json();
+
+    // Simulate quote objects from placeholder data
+    const serverQuotes = data.slice(0, 10).map((item) => ({
+      text: item.title,
+      category: "Server Import",
+    }));
+
+    handleServerSync(serverQuotes);
+  } catch (err) {
+    console.error("❌ Server fetch error:", err);
+  }
+}
+
+// Merge and handle potential conflicts
+function handleServerSync(serverQuotes) {
+  const localMap = new Map(quotes.map((q) => q.text));
+  let updated = false;
+
+  serverQuotes.forEach((serverQuote) => {
+    if (!localMap.has(serverQuote.text)) {
+      quotes.push(serverQuote);
+      updated = true;
+    }
+  });
+
+  if (updated) {
+    console.warn("⚠️ Local data updated with new server quotes");
+    saveQuotesToLocalStorage();
+    populateCategories();
+    renderQuotesList(selectedCategory);
+    showSyncNotification("🔄 New quotes synced from the server!");
+  }
+}
+
+// Display sync notification
+function showSyncNotification(message) {
+  const note = document.createElement("div");
+  note.textContent = message;
+  note.style.position = "fixed";
+  note.style.bottom = "20px";
+  note.style.right = "20px";
+  note.style.background = "#2563eb";
+  note.style.color = "#fff";
+  note.style.padding = "10px 14px";
+  note.style.borderRadius = "8px";
+  note.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
+  note.style.zIndex = "9999";
+  document.body.appendChild(note);
+  setTimeout(() => note.remove(), 4000);
 }
