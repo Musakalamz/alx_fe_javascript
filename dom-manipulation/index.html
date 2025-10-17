@@ -3,60 +3,59 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Dynamic Quote Generator</title>
+    <title>Dynamic Quote Generator — with Storage & JSON</title>
     <style>
       body {
-        font-family: "Poppins", sans-serif;
-        background: #f4f4f4;
+        font-family: system-ui, Arial;
+        background: #f7f9fc;
+        padding: 28px;
         text-align: center;
-        padding: 30px;
       }
-
       h1 {
-        color: #333;
+        color: #111;
+        margin-bottom: 8px;
       }
-
       #quoteDisplay {
         background: #fff;
-        padding: 20px;
+        padding: 18px;
         border-radius: 10px;
-        margin: 20px auto;
-        width: 60%;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        font-size: 1.2rem;
+        width: 70%;
+        margin: 14px auto;
+        box-shadow: 0 4px 14px rgba(12, 20, 50, 0.06);
+        font-size: 1.05rem;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
-
-      #categorySelect {
-        margin-bottom: 10px;
-        padding: 5px;
+      .controls {
+        margin: 10px 0;
       }
-
+      select,
+      input[type="text"],
       button {
-        padding: 10px 20px;
-        margin: 5px;
-        border: none;
-        background-color: #007bff;
-        color: #fff;
-        border-radius: 5px;
-        cursor: pointer;
+        padding: 8px 10px;
+        margin: 6px 4px;
+        border-radius: 6px;
+        border: 1px solid #d1d7e0;
       }
-
-      button:hover {
-        background-color: #0056b3;
+      input[type="file"] {
+        margin-left: 8px;
       }
-
-      input {
-        padding: 8px;
-        margin: 5px;
-        border-radius: 5px;
-        border: 1px solid #ccc;
+      #addQuoteFormContainer {
+        margin-top: 18px;
+      }
+      .small {
+        font-size: 0.9rem;
+        color: #555;
       }
     </style>
   </head>
   <body>
     <h1>Dynamic Quote Generator</h1>
 
-    <div>
+    <div class="controls">
+      <label for="categorySelect" class="small">Choose category:</label>
       <select id="categorySelect"></select>
       <button id="newQuote">Show New Quote</button>
     </div>
@@ -65,6 +64,18 @@
 
     <div id="addQuoteFormContainer"></div>
 
-    <script src="./script.js"></script>
+    <div style="margin-top: 18px">
+      <button id="exportJson">Export Quotes (JSON)</button>
+      <input type="file" id="importFile" accept=".json" />
+      <button id="importMerge">Import (Merge)</button>
+      <button id="importReplace">Import (Replace)</button>
+    </div>
+
+    <p class="small" style="margin-top: 12px">
+      Tip: Imported JSON must be an array of objects with <code>text</code> and
+      <code>category</code> fields.
+    </p>
+
+    <script src="script.js"></script>
   </body>
 </html>
