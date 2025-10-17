@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dynamic Quote Generator — with Filters & Storage</title>
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+        background: #f5f6fa;
+        padding: 30px;
+        text-align: center;
+      }
+
+      h1 {
+        color: #333;
+        margin-bottom: 10px;
+      }
+
+      #quoteDisplay {
+        background: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        width: 70%;
+        margin: 20px auto;
+        box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        font-size: 1.1rem;
+        min-height: 70px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      select,
+      input[type="text"],
+      button {
+        padding: 8px 10px;
+        margin: 6px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+      }
+
+      button {
+        background: #007bff;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #0056b3;
+      }
+
+      #quotesList {
+        background: #fff;
+        width: 70%;
+        margin: 15px auto;
+        border-radius: 10px;
+        padding: 10px;
+        text-align: left;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      #quotesList p {
+        border-bottom: 1px solid #eee;
+        padding: 8px 0;
+      }
+
+      #quotesList p:last-child {
+        border-bottom: none;
+      }
+
+      small {
+        color: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Dynamic Quote Generator</h1>
+
+    <div>
+      <label for="categoryFilter"><b>Filter by Category:</b></label>
+      <select id="categoryFilter" onchange="filterQuotes()">
+        <option value="all">All Categories</option>
+        <!-- dynamically populated categories -->
+      </select>
+    </div>
+
+    <div id="quoteDisplay">Click “Show New Quote” to begin!</div>
+
+    <div>
+      <button id="newQuote">Show New Quote</button>
+    </div>
+
+    <div id="addQuoteFormContainer"></div>
+
+    <div style="margin-top: 15px">
+      <button id="exportJson">Export Quotes (JSON)</button>
+      <input type="file" id="importFile" accept=".json" />
+      <button id="importMerge">Import (Merge)</button>
+      <button id="importReplace">Import (Replace)</button>
+    </div>
+
+    <div id="quotesList"></div>
+
+    <script src="3-script.js"></script>
+  </body>
+</html>
